@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Both are build-time inputs: NEXT_PUBLIC_* is frozen into the client
+        # bundle, and the encryption key is embedded in the build output.
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-}
+        NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}
+    image: weact-xiaobenben
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Read at runtime by the server only — never inlined into the client bundle.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/weact}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Reserved for the PostgreSQL integration. The app does not connect to it yet;
+  # DATABASE_URL is already wired so nothing else needs to change once it does.
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: weact
+    # Published so `npm run dev` on the host can reach it at localhost:5432.
+    # Change to "5433:5432" if you already run PostgreSQL on the host, and
+    # update DATABASE_URL to match.
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d weact"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  db-data:
