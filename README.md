@@ -1,36 +1,313 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Weact小本本
 
-## Getting Started
+> **we activity** — 和朋友一起策划、记录、回顾每一场活动。
 
-First, run the development server:
+Weact小本本 是一款活动管理应用。你把朋友拉进一个小团体，定下聚餐、玩耍、旅行
+或你自己添加的类型的初步计划，大家投票拍板；活动过程中和结束后可以发文字、图片、
+语音感想，打分、分账；需要出行的活动还能查交通住宿。
+时间长了，它会替你生成年度回顾和好友亲密度。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 功能点
+
+### 1. 账号与登录
+- **手机号登录**，登录时校验手机号格式（11 位，`1[3-9]` 开头，自动去掉空格、短横线和 `+86` 前缀）。
+- 未注册的手机号**自动注册**，注册后跳转设置密码。
+- 密码规则：**至少 8 位，且至少包含一个小写字母和一个数字**。表单实时列出未满足的规则。
+
+### 2. 好友与关系标注
+- 通过手机号添加好友。
+- 可给好友标注关系：朋友 / 好友 / 恋人 / 家人 / 同事 / 同学 / 其他。
+- **关系可以随时修改，且只有自己可见** —— 同一条好友关系，双方看到的关系互不影响
+  （所以关系存在「关系 × 拥有者」上，不存在好友关系边上）。
+
+### 3. 活动列表与详情
+- 登录后进入历史活动列表，**只展示关键字段**：类型、主题、时间、地点、人均、成员头像。
+- 点击任意活动进入详情页，按分区展示全部内容：概览 / 计划·投票 / 评论·感想 /
+  打分·分账 / 交通·住宿（旅行类，以及勾选了「需要交通住宿」的自定义类型）。
+
+### 4. 新建活动
+- 活动类型：内置的**聚餐 / 玩耍 / 旅行**，加上**用户自己添加的类型**（见第 9 节）。
+- 表单顺序：主题 → 时间（起止）→ 地点定位 → **拉人** → 预计花费 / 预计人均 → 具体说明。
+  拉人排在预算之前，是因为人均是按人数摊出来的 —— 先定人，再看人均才讲得通。
+- 起止时间用**自研的主题化日期时间选择器**（日历 + 时/分），不是原生
+  `<input type="datetime-local">` —— 原生控件的弹出日历走系统样式，圆角、配色都和主题对不上。
+- **拉人进小团体有两条路**：
+  - 好友快捷列表（来自「我的好友」）点一下选中；
+  - **对方还不是好友时，直接输手机号拉进来** —— 这类成员标记为「待接受」，
+    在数据库里是 pending invite，等对方注册/接受后才落到 `activity_members`。
+- 填了总预算后按当前人数自动估算人均（好友 + 待接受邀请 + 你自己）。
+- 之后可以在活动内**提出多个方案 → 投票 → 拍板最终计划**。
+
+### 5. 活动进行中与结束后
+- **评论感想**：支持文字、图片、语音三种形式，活动过程中和结束后都能发。
+- **打分**：活动结束后可对本次体验打 1–5 星。
+- **分账**：记录总额、每人应付与实际已付，算出谁该给谁转多少。
+- **旅行实时信息**：需要出行的活动可查交通（航班/车次）与住宿，并标注报价的新鲜度。
+
+### 6. 回顾与亲密度
+- 按年（或季度）生成活动回顾：活动总数、分类占比、年度之最等。
+- **亲密度统计**：根据共同活动次数、互动频率和最近一次见面的时间衰减，
+  算出和每位好友的亲密度（0–100），用柱状图展示。
+
+### 7. 分享
+- 活动可以生成长链接分享给未注册的人，落地页只暴露分享者选择公开的内容。
+- **关于微信分享**：微信自定义分享卡片需要 JS-SDK，而 JS-SDK 要求已认证的公众号、
+  已备案并绑定该公众号的域名，以及服务端签名接口 —— 对自部署应用来说成本过高，
+  短期内不做。目前采用**系统分享面板（`navigator.share`）+ 复制链接**：
+  在 iOS/Android 上系统面板本身就会列出微信，微信内置浏览器里也能用右上角「…」正常转发，
+  覆盖面和 JS-SDK 基本一致。
+
+### 8. 主题与外观
+- 两个内置主题，都是完整配色而非简单换色：
+  - **温馨**（默认）：奶油底 + 珊瑚/陶土主色，大圆角。暖色浅调。
+  - **冷酷**：深空蓝黑底 + 电光青主色，更锐利的圆角。冷色深调。
+- 主题切换即明暗切换，**没有「温馨 + 深色」这类组合**，也不跟随系统设置 —— 首次访问一定是温馨。
+- 选择存在本机（`localStorage`），页面加载时由一段阻塞式内联脚本在**首次绘制前**写入，
+  不会出现先闪一下默认主题的情况。
+- 背景顶部有一层低透明度的主色辉光（每主题一套 `--ambient` 径向渐变）。
+- 全站适配 PC 与移动端：`md` 以上是固定侧边栏，以下是顶部栏 + 底部 Tab。
+
+### 9. 自定义活动类型
+- **内置三种是固定的**：聚餐 / 玩耍 / 旅行不能改名、不能删除、不能换色。
+  这是产品决定，不是没做完 —— 它们在任何主题、任何设备上都必须长得一样。
+- **自定义类型可以新建、改名、删除**，颜色**自动分配**（用户不选色）。
+  两个入口：设置页的「活动类型」卡片，以及新建活动表单里的「新建类型」
+  （在表单里建完会**自动选中**，不用回头再点一次）。
+- 每个自定义类型可以勾选**「需要交通住宿」**，勾了之后用它的活动详情页会多出
+  「交通 · 住宿」分区。
+- 类型名称上限 12 字，且不允许与内置或已有自定义类型重名。
+- 类型保存在本机 `localStorage`，换设备/换浏览器就没了。
+
+#### 两个决定了实现的约束
+
+**Tailwind v4 不能在运行时拼类名。** 自动分配的颜色必须是在源码里写死的
+**完整字面量**（`ACTIVITY_TYPE_ACCENT_PALETTE` 里 8 组），按 `paletteIndex` 取。
+`bg-${hue}-500/10` 这种拼出来的类名 Tailwind 扫不到、不会生成、**静默失效** ——
+徽章会变成没有底色的裸文字，而且不报任何错。色板色相刻意避开内置的
+amber/violet/sky，每色都带 `dark:` 变体（全站 `dark:` 被重映射到冷酷主题，
+所以一套类名同时适配两套主题）。实测两套主题下 8 色 + 3 个内置的对比度都 ≥ 4.5:1
+（WCAG AA 正文标准），**最紧的是温馨主题下的橙色 4.66:1** —— 再加颜色时
+用同样的 `-500/10` 底 + `-700` 前景组合，并复核这个数。
+
+**放宽类型后编译器不再报警。** `ActivityType` 从三字面量联合放宽成 `string`，
+而 `tsconfig.json` 没开 `noUncheckedIndexedAccess`，所以 `TABLE[type]` 在 key
+不存在时类型仍然成立、运行时静默是 `undefined` —— 原本四处直接下标取值会
+**不报错地渲染出空徽章和 `undefined 次`**。因此所有取值都收敛到
+`resolveActivityType()` 一个函数，解析不到时降级成「未知类型」中性徽章，
+而不是崩溃或留空。旧的 `ACTIVITY_TYPE_LABEL` / `ACTIVITY_TYPE_ACCENT` 两个导出
+已删除 —— 留着它们就等于留着无兜底的取值入口。
+
+#### 已知取舍
+
+- **自定义类型只存在本机。** 没有后端，所以别人打开你分享的活动链接看到的会是
+  「未知类型」。接后端时这张表挪到服务端即可，`resolveActivityType()` 不用动。
+- **删除类型不会删除用了它的活动**，那些活动的徽章会降级成「未知类型」，
+  并失去交通住宿分区。删除确认框里写明了这一点。
+- **颜色不复用**：新类型的 `paletteIndex` 取「已有最大值 + 1」而不是数组长度 ——
+  按长度算的话，删掉一个类型后下一个就会拿到一个仍在使用的颜色。
+- **跨标签页同步**靠 `storage` 事件（在一个标签页删除类型，另一个已打开的页面
+  会自己更新，不用刷新）。
+- 年度回顾的分类统计跟着走，但数据本身仍是静态 fixture。
+
+---
+
+## 技术栈
+
+| | |
+|---|---|
+| 框架 | Next.js **16.3.5**（App Router、Turbopack、React 19） |
+| 语言 | TypeScript（strict） |
+| 样式 | Tailwind CSS **v4**（CSS-first，无 `tailwind.config.js`） |
+| 组件 | shadcn/ui v4，预设 **base-nova**，底层 **Base UI** |
+| 图表 | Recharts（通过 shadcn `chart`） |
+| 图标 | lucide-react |
+| 部署 | Docker（`output: "standalone"`）+ docker-compose |
+
+> shadcn v4 的默认预设已从 Radix 换成 Base UI，所以组件 API 与网上多数教程不同：
+> 组合用 `render={<Link />}` 而不是 `asChild`，`cn` 从 `cn` 包导入而不是 `clsx` + `tailwind-merge`。
+
+### 主题是怎么实现的
+
+主题状态挂在 `<html>` 的 `data-theme` 属性上（`warm` / `cool`），`globals.css` 里两套
+CSS 变量块分别覆盖。关键的一步是**把 `dark:` 变体重映射到冷酷主题**：
+
+```css
+@custom-variant dark (&:is([data-theme="cool"] *));
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+shadcn 生成的组件内部有 26 处 `dark:` 工具类（如 button 的 `dark:bg-input/30`），
+重映射后它们在冷酷主题下自动生效，**一个组件都不用改写**。这里的 `dark` 指的是
+主题身份，不是「用户偏好深色」—— 项目里没有 `prefers-color-scheme` 驱动的样式。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+主题的读取不经过 React state，而是 `useSyncExternalStore` 直接读 DOM 属性
+（`lib/theme.ts` + `hooks/use-theme.ts`）—— 因为内联脚本在 hydration 之前就已经改过
+那个属性了，以 DOM 为准才不会打架，也就不需要 Provider 或 `mounted` 标志。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> 改主题时注意：`lib/theme.ts` 的 `CHROME_COLOR`、`app/layout.tsx` 的 `themeColor`、
+> 两套 CSS 变量块的 `--background` 必须保持一致，否则移动端浏览器地址栏颜色会对不上。
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 目录结构
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+├── layout.tsx                    根布局：字体、metadata、Toaster、TooltipProvider
+├── page.tsx                      → 重定向到 /activities
+├── error.tsx                     错误边界（Next 16 用 retry，不是 reset）
+├── not-found.tsx
+│
+├── (auth)/                       未登录：无导航，仅居中卡片
+│   ├── layout.tsx
+│   ├── login/page.tsx            手机号 + 验证码
+│   └── register/password/page.tsx 自动注册后设置密码
+│
+├── (app)/                        已登录：带 AppShell（PC 侧边栏 / 移动端底部 Tab）
+│   ├── layout.tsx
+│   ├── activities/
+│   │   ├── page.tsx              历史活动列表（仅关键字段）
+│   │   ├── new/page.tsx          新建活动
+│   │   └── [id]/
+│   │       ├── layout.tsx        活动头部 + 分区导航
+│   │       ├── page.tsx          概览
+│   │       ├── plan/page.tsx     计划 · 投票
+│   │       ├── moments/page.tsx  评论 · 感想
+│   │       ├── settle/page.tsx   打分 · 分账
+│   │       └── travel/page.tsx   交通 · 住宿
+│   ├── friends/page.tsx          好友列表 + 关系标注
+│   ├── recap/page.tsx            年度回顾 + 亲密度
+│   └── settings/page.tsx         我的
+│
+└── s/[token]/page.tsx            分享落地页（公开，无需登录）
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+components/
+├── ui/                           shadcn 组件（生成物，不要手改 —— 例外见下）
+├── layout/app-shell.tsx          响应式外壳（PC 侧边栏 / 移动端顶栏 + 底部 Tab）
+├── theme-toggle.tsx              主题切换控件（full 带文字 / compact 仅图标）
+├── date-time-picker.tsx          主题化日期时间选择器（替代原生 datetime-local）
+├── activity/                     活动相关的组合组件
+│   ├── activity-badges.tsx       徽章；内置类型走服务端快速路径，零客户端 JS
+│   ├── custom-activity-type-badge.tsx  自定义类型的徽章（client 小岛）
+│   ├── activity-type-picker.tsx  表单里的类型选择 + 就地新建
+│   ├── activity-type-manager.tsx 设置页的类型管理
+│   ├── activity-type-dialog.tsx  新建 / 编辑类型（两处入口共用）
+│   └── travel-gate.tsx           客户端判断是否渲染「交通 · 住宿」正文
+├── friend/                       好友相关
+├── recap/                        图表
+└── page-header.tsx               统一的页面标题块
 
-## Deploy on Vercel
+hooks/
+├── use-theme.ts                  读当前主题（useSyncExternalStore）
+└── use-activity-types.ts         读自定义活动类型（同上）
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+lib/
+├── types.ts                      领域模型
+├── validation.ts                 手机号 / 密码 / 验证码规则
+├── constants.ts                  文案、导航、内置活动类型与配色色板
+├── activity-types.ts             自定义活动类型存储 + resolveActivityType 解析
+├── format.ts                     日期与金额格式化（zh-CN）
+├── theme.ts                      主题存储 + 防闪烁内联脚本
+└── mock-data.ts                  占位数据，接 DAL 后删除
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### ⚠️ `components/ui/` 里有两处本地补丁
+
+两个都是**生成物漏掉了高度约束**这一类缺陷，修在 primitive 层比在每个调用点各打一遍补丁更合适。
+改动处都有 `LOCAL PATCH` 注释。
+
+**`dialog.tsx` — `DialogContent`**
+
+原本只约束宽度不约束高度，而遮罩层是不可滚动的 `fixed inset-0`，
+所以任何高于视口的对话框上下两端都会被裁掉且无法触达（横屏手机、软键盘弹起时必现）。
+补丁加了 `max-h-[calc(100dvh-2rem)] overflow-y-auto`。
+
+**`popover.tsx` — `PopoverContent`**
+
+同一个预设里的其他弹出层（`select.tsx`、`dropdown-menu.tsx`）都已经带了
+`max-h-(--available-height) overflow-y-auto`，只有 `popover.tsx` 漏了，
+于是高于可用空间的 popover 会直接溢出视口且无法滚动。
+`--available-height` 是 Base UI 在 positioner 上算好的可用高度，会继承下来。
+
+> 这个补丁是加日期时间选择器时暴露出来的：加上「确认」按钮后弹层高 403px，
+> 在 390×500、844×390（横屏）这类视口下会溢出屏幕。修复后短视口内部滚动、
+> 正常视口（桌面 1280×900、手机 390×844）行为完全不变。
+
+**重新执行 `shadcn add dialog --overwrite` / `shadcn add popover --overwrite`
+会分别覆盖掉这两个补丁。**
+
+---
+
+## 开发
+
+```bash
+npm run dev                 # next dev（Turbopack），产物在 .next/dev
+npm run build               # next build（不再运行 lint）
+npm run lint                # eslint
+npx next typegen            # 重新生成路由类型（tsc 需要它）
+npx tsc --noEmit            # 类型检查
+```
+
+Docker：
+
+```bash
+docker compose up --build   # 应用 + postgres（postgres 目前保留未接入）
+```
+
+---
+
+## 当前进度
+
+**已完成**
+- 完整的路由结构与响应式外壳，15 个路由全部可构建、可访问（其中 9 条静态预渲染）。
+- shadcn/ui 初始化完成，已安装 29 个组件。
+- 领域模型（`lib/types.ts`）、校验规则（`lib/validation.ts`）、格式化工具。
+- 基于占位数据的完整 UI：活动列表、活动详情五个分区、好友列表、年度回顾、分享落地页。
+- **温馨 / 冷酷双主题**：CSS 变量分主题覆盖、`dark:` 变体重映射、防闪烁内联脚本、
+  主色辉光背景，以及侧边栏 / 顶栏 / 设置页 / 登录页四处切换入口。
+- **移动端响应式修复**：外壳容器的 flex 主轴方向（此前窄屏下顶栏会被挤成左侧竖条）、
+  对话框高度溢出、设置页按钮换行。
+- **日期时间选择器**：替换原生 `datetime-local`，改用 `Popover + Calendar + 时/分选择`，
+  圆角与配色跟随主题（原生控件的弹出日历无法被 CSS 影响）。日历撑满弹层宽度，
+  底部有「确认」按钮；值在每次选择时即提交，所以点弹层外部关闭**不会丢选择**，
+  「确认」只负责关闭。弹层在高度不够的视口（横屏手机等）内部滚动，见下方补丁说明。
+- **好友范围约束**：好友快捷列表与好友页改为读 `myFriendships`，
+  不会再渲染别人的关系标注。
+- **手机号拉人**：新建活动时可以不经过好友关系，直接输手机号把小团体外的人拉进来，
+  这类成员以「待接受」的虚线标签区分。
+- **自定义活动类型**：内置三种固定不变，用户可以自己添加、改名、删除类型，
+  颜色自动分配；每个类型可勾选是否需要交通住宿。解析统一走 `resolveActivityType()`，
+  类型被删后活动降级成「未知类型」而不是崩溃。详见第 9 节。
+
+**尚未实现**
+- **后端与数据库**：`docker-compose.yml` 里的 PostgreSQL 已预留但没有任何代码读取它，
+  当前所有页面都读 `lib/mock-data.ts`。
+- **认证**：登录/设置密码表单只做前端校验，提交是 stub。
+- **Server Actions**：所有写入操作（建活动、投票、发感想、打分、分账、改关系）都只弹 toast。
+- **文件上传**：图片与语音需要对象存储。
+- **地图与实时数据**：地点定位目前是纯文本；交通住宿是静态示例。
+- **定时任务**：年度回顾与亲密度计算。
+
+### 接入后端时的注意事项
+
+- 所有 `TODO` 注释标记了需要接 Server Action 的位置。
+- **每个 Server Action 都必须独立鉴权**：页面级的会话检查只决定渲染什么，
+  Action 本身是一个独立可达的 POST 端点，必须重新校验会话和行归属。
+- **分享 token 必须不可枚举**：绝不能用活动 id 当 token，否则整个 id 空间可被遍历。
+  分享页已经设了 `noindex`。
+- **好友关系必须按 `ownerId` 过滤**：`friendships` 是全局表，一条记录不代表「我的好友」。
+  好友快捷列表和好友页都必须读 `myFriendships`（将来是
+  `getFriendships(session.userId)`），否则会把**别人的私密关系标注**渲染出来 ——
+  关系标注只对拥有者可见，这是硬要求。
+- **手机号邀请要防枚举**：按手机号拉人的接口不能回显「该号码是否已注册」，
+  否则可以拿来批量探测账号。当前实现只校验格式、不查询注册状态，就是这个原因。
+  服务端还需要限流，并且不能仅凭前端传的 id 就写入 `activity_members`。
+- **自定义活动类型挪到服务端时**：类型名称是用户输入、且会出现在别人能打开的分享页上，
+  12 字上限和重名校验目前只是客户端提示（`isLabelTaken` 只防误操作，不防攻击），
+  必须在服务端重新强制。类型 id 也要校验归属 —— 否则一个构造出来的 `type` 值
+  可以让活动引用别人账号下的类型。读取端仍然全部经过 `resolveActivityType()`，
+  所以**解析逻辑不用改**，只是解析数据源从 localStorage 换成服务端查询。
+- 环境变量与数据库访问应集中在一个 Data Access Layer（`import 'server-only'`）。
+- 缓存模型尚未决定：`next.config.ts` 里没有开 `cacheComponents`，
+  当前是路由级缓存模型。开启它会改变全局渲染规则，是个单独的决定。
