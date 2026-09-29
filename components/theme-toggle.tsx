@@ -1,25 +1,36 @@
 "use client";
 
-import { Snowflake, Sun } from "lucide-react";
+import { Briefcase, Snowflake, Sun } from "lucide-react";
 
 import { cn } from "cn";
-import { setTheme, type Theme } from "@/lib/theme";
+import { setTheme, THEMES, type Theme } from "@/lib/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-// `satisfies` keeps the literal narrowing `as const` gives while still failing
-// the build if a Theme is added and this list isn't updated.
-const OPTIONS = [
-  { value: "warm", label: "温馨", Icon: Sun },
-  { value: "cool", label: "冷酷", Icon: Snowflake },
-] as const satisfies ReadonlyArray<{
-  value: Theme;
-  label: string;
-  Icon: React.ComponentType<{ className?: string }>;
-}>;
+/**
+ * Keyed by `Theme`, so `Record` makes a missing entry a **compile error**.
+ *
+ * The previous `as const satisfies ReadonlyArray<…>` did not: `satisfies` only
+ * checks the entries that are present, never that every `Theme` is listed.
+ * Adding a theme to the union would have left it silently unreachable.
+ *
+ * Labels must stay two characters. Three labelled options already fill ~214px
+ * of the 224px desktop sidebar (`w-56`) — a three-character label overflows it.
+ */
+const THEME_META: Record<
+  Theme,
+  { label: string; Icon: React.ComponentType<{ className?: string }> }
+> = {
+  warm: { label: "温馨", Icon: Sun },
+  cool: { label: "冷酷", Icon: Snowflake },
+  business: { label: "商务", Icon: Briefcase },
+};
 
 /**
- * Two-state theme switch. There is no "system" option by design — the two
- * themes *are* the light and dark presentations.
+ * Theme switch. There is no "system" option by design — the themes are stored
+ * preferences, not a system setting.
+ *
+ * 温馨 and 商务 are both light presentations; 冷酷 is the only dark one, and
+ * `dark:` in globals.css is aliased to it alone.
  *
  * `full` adds labels (sidebar, settings); `compact` is icons only (mobile top
  * bar, auth pages) and relies on `aria-label` for the accessible name.
@@ -42,7 +53,8 @@ export function ThemeToggle({
         className
       )}
     >
-      {OPTIONS.map(({ value, label, Icon }) => {
+      {THEMES.map((value) => {
+        const { label, Icon } = THEME_META[value];
         const active = theme === value;
         return (
           <button

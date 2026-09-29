@@ -2,10 +2,14 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* 「dark」在本项目里等价于「冷酷」主题。
-   shadcn 生成的组件内部有 40+ 处 `dark:` 工具类（如 button 的 `dark:bg-input/30`），
+/* 「dark」在本项目里等价于「冷酷」主题 —— 而且**只**等价于它。
+   shadcn 生成的组件内部有 61 处 `dark:` 工具类（如 button 的 `dark:bg-input/30`），
    重映射到这个自定义变体后，它们在冷酷主题下自动生效，一个组件都不用改写。
-   注意：这里的 `dark` 指的是主题身份，不是「用户偏好深色」。 */
+   注意：这里的 `dark` 指的是主题身份，不是「用户偏好深色」。
+
+   三个主题里，温馨和商务都是**浅色**，因此都走「只吃 :root 基础样式」这条路径，
+   拿不到任何 `dark:` 覆盖 —— 对它们来说这是正确的，那些规则全是「在近黑底上还能看」
+   的补偿。所以加商务主题时这个变体一行都不用改。 */
 @custom-variant dark (&:is([data-theme="cool"] *));
 
 @theme inline {
@@ -163,6 +167,65 @@
       oklch(0.58 0.22 295 / 0.24),
       transparent 60%
     );
+}
+
+/* ------------------------------ 商务 · business ------------------------------
+   第三个主题，也是第二个浅色主题。纯中性灰阶 + 一个克制的冷色（深钢蓝），
+   小圆角、无辉光。这个块里的每一对前景/背景都实算过 WCAG 对比度，最低 4.96:1。 */
+
+[data-theme="business"] {
+  color-scheme: light;
+
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.215 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.215 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.215 0 0);
+  /* chroma 压到 0.14（Tailwind blue-800 是 0.199）：同一个蓝，明显更沉。
+     这就是「克制的冷色」—— 白字压它 7.5:1。 */
+  --primary: oklch(0.45 0.14 258);
+  /* 0.995 而不是纯白 —— 纯白压在钢蓝上偏刺眼。 */
+  --primary-foreground: oklch(0.995 0 0);
+  --secondary: oklch(0.955 0 0);
+  --secondary-foreground: oklch(0.28 0 0);
+  --muted: oklch(0.965 0 0);
+  /* 5.6:1 压背景、5.8:1 压卡片、5.3:1 压 muted、4.96:1 压 accent。 */
+  --muted-foreground: oklch(0.505 0 0);
+  --accent: oklch(0.945 0.012 255);
+  --accent-foreground: oklch(0.28 0 0);
+  /* 语义色，刻意不参与灰化 —— 错误必须一眼是红的。5.2:1 压背景。 */
+  --destructive: oklch(0.55 0.2 27);
+  /* 比 shadcn 默认的 #e5e7eb 略重：商务风里边框承担分区职责。 */
+  --border: oklch(0.895 0 0);
+  --input: oklch(0.895 0 0);
+  --ring: oklch(0.45 0.14 258);
+
+  /* 主题色台阶 + 灰度阶梯。--chart-2 是目前唯一在用的一个
+     （components/recap/intimacy-chart.tsx 的「亲密度」柱状图）。它是 var() 引用，
+     会自动按 data-theme 重解析，所以不用改组件 —— 但**不覆盖就会一直是温馨
+     主题的金色**，在一张黑白灰的页面上格外显眼。对白卡 5.5:1。 */
+  --chart-1: oklch(0.45 0.14 258);
+  --chart-2: oklch(0.52 0.11 258);
+  --chart-3: oklch(0.65 0 0);
+  --chart-4: oklch(0.76 0 0);
+  --chart-5: oklch(0.87 0 0);
+
+  /* 比冷酷的 0.5rem 更小，直角更「商务」。 */
+  --radius: 0.375rem;
+
+  --sidebar: oklch(0.97 0 0);
+  --sidebar-foreground: oklch(0.215 0 0);
+  --sidebar-primary: oklch(0.45 0.14 258);
+  --sidebar-primary-foreground: oklch(0.995 0 0);
+  --sidebar-accent: oklch(0.945 0.012 255);
+  --sidebar-accent-foreground: oklch(0.28 0 0);
+  --sidebar-border: oklch(0.895 0 0);
+  --sidebar-ring: oklch(0.45 0.14 258);
+
+  /* 必须显式写出来。--ambient 在 :root 里是那两团橙红辉光，不覆盖就会继承过来 ——
+     黑白灰的页面上飘着一层橙色光晕。`none` 即 background-image: none。 */
+  --ambient: none;
 }
 
 @layer base {

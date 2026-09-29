@@ -79,7 +79,7 @@ export default function LoginPage() {
         {step === "phone" ? (
           <form onSubmit={handleSendCode}>
             <FieldGroup>
-              <Field data-invalid={phoneError ? true : undefined}>
+              <Field>
                 <FieldLabel htmlFor="phone">手机号</FieldLabel>
                 <Input
                   id="phone"
@@ -87,7 +87,6 @@ export default function LoginPage() {
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel"
-                  placeholder="138 0000 0000"
                   value={phone}
                   aria-invalid={phoneError ? true : undefined}
                   onChange={(e) => {

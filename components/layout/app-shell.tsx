@@ -65,13 +65,19 @@ function NavLink({
 
 function Brand() {
   return (
-    <Link href="/activities" className="flex items-center gap-2">
+    // `min-w-0` here plus `truncate` on the name are load-bearing at 320px.
+    // The mobile top bar is `justify-between` with children that neither shrink
+    // nor clip, so anything that widens the right-hand cluster pushes the row
+    // past the viewport and the page scrolls sideways. The three-icon theme
+    // toggle does exactly that — see the header below.
+    <Link href="/activities" className="flex min-w-0 items-center gap-2">
       {/* "We" needs more room than the old square monogram, so this is
-          fixed-height and auto-width rather than `size-7`. */}
-      <span className="grid h-7 place-items-center rounded-lg bg-primary px-2 text-xs font-bold tracking-tight text-primary-foreground">
+          fixed-height and auto-width rather than `size-7`. `shrink-0` keeps the
+          monogram whole and forces the squeeze onto the name instead. */}
+      <span className="grid h-7 shrink-0 place-items-center rounded-lg bg-primary px-2 text-xs font-bold tracking-tight text-primary-foreground">
         We
       </span>
-      <span className="font-heading text-lg font-semibold tracking-tight">
+      <span className="truncate font-heading text-lg font-semibold tracking-tight">
         {APP_NAME}
       </span>
     </Link>
@@ -116,7 +122,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">
         <Brand />
-        <div className="flex items-center gap-2">
+        {/* `shrink-0`: the cluster keeps its size and the brand name truncates,
+            rather than the avatar being crushed. */}
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle variant="compact" />
           <Avatar className="size-8">
             <AvatarFallback>{me.nickname.slice(0, 1)}</AvatarFallback>

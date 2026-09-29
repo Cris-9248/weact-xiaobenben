@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
-import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { CHROME_COLOR, DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -45,8 +45,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   // Static default (温馨). The real value is written by THEME_INIT_SCRIPT below
   // and by setTheme() — media queries can't express this, the theme is a
-  // stored preference rather than a system setting.
-  themeColor: "#fffdfa",
+  // stored preference rather than a system setting. Derived from CHROME_COLOR
+  // rather than repeated as a literal, so the two can't drift apart.
+  themeColor: CHROME_COLOR[DEFAULT_THEME],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

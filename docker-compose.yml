@@ -33,7 +33,13 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      # Mount the PARENT, not /var/lib/postgresql/data. Postgres 18 changed the
+      # layout: PGDATA is now the versioned /var/lib/postgresql/18/docker, and
+      # the image refuses to start if it finds a mount at the old path. Worse,
+      # the old path still "works" as a mount — it just never receives any
+      # writes, so the named volume would sit empty and every restart would
+      # silently start from a fresh database.
+      - db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d weact"]
       interval: 10s

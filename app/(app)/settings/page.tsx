@@ -64,7 +64,7 @@ export default function SettingsPage() {
             <div className="space-y-0.5">
               <p className="text-sm font-medium">主题</p>
               <p className="text-xs text-muted-foreground">
-                温馨是暖色浅调，冷酷是冷色深调。选择会保存在本机。
+                温馨是暖色浅调，冷酷是冷色深调，商务是黑白灰的克制配色。选择会保存在本机。
               </p>
             </div>
             <ThemeToggle />
