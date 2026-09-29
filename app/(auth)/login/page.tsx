@@ -14,129 +14,117 @@ import {
 } from "@/components/ui/card";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { isValidPhone, isValidSmsCode, normalizePhone } from "@/lib/validation";
+import { PASSWORD_RULES, checkPassword, isValidPhone } from "@/lib/validation";
 
-type Step = "phone" | "code";
-
+/**
+ * 手机号 + 密码，一个表单两条路径。没有验证码：短信通道对个人开发者基本
+ * 走不通，而且这里无论新老用户收的都是同一个密码字段，再插一步 OTP 只会
+ * 让流程更长。
+ *
+ * 密码放在这一页而不是注册页，是为了让它**只经过一个请求**：服务端拿到
+ * 手机号就知道该校验还是该建号，明文密码全程不回传浏览器。
+ */
 export default function LoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSendCode(event: React.FormEvent) {
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!isValidPhone(phone)) {
-      setPhoneError("请输入有效的 11 位手机号");
-      return;
-    }
-    setPhoneError(null);
-    setSending(true);
+    if (submitting) return;
 
-    // TODO: Server Action → 短信服务. A brand-new number auto-registers, and
-    // the response decides whether we go to the OTP step or straight to
-    // setting a password.
-    toast("短信服务尚未接入", { description: "接入后这里会下发验证码。" });
-    setSending(false);
-    setStep("code");
-  }
+    const nextPhoneError = isValidPhone(phone)
+      ? null
+      : "请输入有效的 11 位手机号";
+    const problems = checkPassword(password);
+    const nextPasswordError =
+      problems.length === 0
+        ? null
+        : `密码需满足：${problems.map((p) => PASSWORD_RULES[p]).join("、")}`;
 
-  function handleVerify(event: React.FormEvent) {
-    event.preventDefault();
-    if (!isValidSmsCode(code)) {
-      toast.error("验证码格式不正确");
-      return;
-    }
-    // TODO: Server Action → 校验验证码。新用户跳转设置密码，老用户进活动列表。
+    setPhoneError(nextPhoneError);
+    setPasswordError(nextPasswordError);
+    if (nextPhoneError || nextPasswordError) return;
+
+    setSubmitting(true);
+
+    // TODO: Server Action → 用手机号查一次库，在同一个请求里分两条路：
+    //   已注册 → 校验密码。对了签发会话并 router.push("/activities")；
+    //            错了把错误写回 passwordError，不透露是号码还是密码不对。
+    //   新号   → 直接拿这个请求里的手机号 + 密码建账号（nickname 先留空），
+    //            种一个「待完成注册」的短时 cookie 记住是哪个账号，
+    //            再去 /register/password 补昵称。
+    //
+    // 校验规则在这里是照着「建号」那条路定的。后端落地后应该把
+    // checkPassword 挪到服务端的新号分支里 —— 否则将来放宽规则时，
+    // 按旧规则注册的老用户会在登录页被自己的密码挡住。
+    toast("后端尚未接入", { description: "接入前这里会先跳到补昵称那一步。" });
+    setSubmitting(false);
     router.push("/register/password");
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{step === "phone" ? "手机号登录" : "输入验证码"}</CardTitle>
-        <CardDescription>
-          {step === "phone"
-            ? "未注册的手机号将自动创建账号。"
-            : `验证码已发送至 ${normalizePhone(phone)}`}
-        </CardDescription>
+        <CardTitle>登录</CardTitle>
+        <CardDescription>没注册过的手机号会自动创建账号。</CardDescription>
       </CardHeader>
 
       <CardContent>
-        {step === "phone" ? (
-          <form onSubmit={handleSendCode}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="phone">手机号</FieldLabel>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  value={phone}
-                  aria-invalid={phoneError ? true : undefined}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (phoneError) setPhoneError(null);
-                  }}
-                />
-                <FieldError>{phoneError}</FieldError>
-              </Field>
-              <Button type="submit" disabled={sending} className="w-full">
-                {sending ? "发送中…" : "获取验证码"}
-              </Button>
-            </FieldGroup>
-          </form>
-        ) : (
-          <form onSubmit={handleVerify}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="code">验证码</FieldLabel>
-                <InputOTP
-                  id="code"
-                  maxLength={6}
-                  value={code}
-                  onChange={setCode}
-                  containerClassName="justify-start"
-                >
-                  <InputOTPGroup>
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <InputOTPSlot key={i} index={i} />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-                <FieldDescription>
-                  没有收到？60 秒后可重新发送。
-                </FieldDescription>
-              </Field>
-              <Button type="submit" className="w-full">
-                下一步
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => setStep("phone")}
-              >
-                换个手机号
-              </Button>
-            </FieldGroup>
-          </form>
-        )}
+        <form onSubmit={handleSubmit}>
+          <FieldGroup>
+            <Field data-invalid={phoneError ? true : undefined}>
+              <FieldLabel htmlFor="phone">手机号</FieldLabel>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                value={phone}
+                placeholder="请输入正确的手机号码"
+                aria-invalid={phoneError ? true : undefined}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (phoneError) setPhoneError(null);
+                }}
+              />
+              <FieldError>{phoneError}</FieldError>
+            </Field>
+
+            <Field data-invalid={passwordError ? true : undefined}>
+              <FieldLabel htmlFor="password">密码</FieldLabel>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                // 新号也走这个字段，但浏览器该按「已有密码」提示 ——
+                // 已注册用户才是这条路径上的多数。
+                autoComplete="current-password"
+                placeholder="密码至少8位, 包含字母和数字"
+                value={password}
+                aria-invalid={passwordError ? true : undefined}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError(null);
+                }}
+              />
+              <FieldError>{passwordError}</FieldError>
+            </Field>
+
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? "登录中…" : "登录"}
+            </Button>
+          </FieldGroup>
+        </form>
       </CardContent>
     </Card>
   );

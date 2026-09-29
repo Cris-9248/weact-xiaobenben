@@ -48,7 +48,27 @@ export const PASSWORD_RULES: Record<PasswordProblem, string> = {
   "has-space": "密码不能包含空格",
 };
 
-/** 4-digit SMS code. */
-export function isValidSmsCode(code: string): boolean {
-  return /^\d{4,6}$/.test(code.trim());
+export const NICKNAME_MAX_LENGTH = 20;
+
+export type NicknameProblem = "empty" | "too-long";
+
+/**
+ * Trimmed before measuring, so a name of pure whitespace counts as empty
+ * rather than as a valid one nobody can see.
+ */
+export function checkNickname(nickname: string): NicknameProblem[] {
+  const trimmed = nickname.trim();
+  const problems: NicknameProblem[] = [];
+  if (trimmed.length === 0) problems.push("empty");
+  if (trimmed.length > NICKNAME_MAX_LENGTH) problems.push("too-long");
+  return problems;
 }
+
+export function isValidNickname(nickname: string): boolean {
+  return checkNickname(nickname).length === 0;
+}
+
+export const NICKNAME_RULES: Record<NicknameProblem, string> = {
+  empty: "昵称不能为空",
+  "too-long": `昵称最多 ${NICKNAME_MAX_LENGTH} 个字符`,
+};
