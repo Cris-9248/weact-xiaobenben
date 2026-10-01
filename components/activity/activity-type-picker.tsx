@@ -60,8 +60,11 @@ export function ActivityTypePicker({
             type="button"
             aria-pressed={picked}
             onClick={() => onChange(type.id)}
+            // `min-h-11`：旁边那组 `ToggleGroupItem` 已经是 44px 高
+            // （components/ui/toggle.tsx 的触控地板），28px 的 pill 挨着它会显得
+            // 像没做完。顺带把命中区做够，`py-1` 换成 `items-center`。
             className={cn(
-              "rounded-full border px-3 py-1 text-sm transition-colors",
+              "inline-flex min-h-11 items-center rounded-full border px-3 text-sm transition-colors",
               picked ? "border-primary bg-secondary" : "hover:bg-muted"
             )}
           >

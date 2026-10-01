@@ -41,7 +41,16 @@ const url = requireEnv(
     "must be `localhost`, not `db`.",
 );
 
-type Db = ReturnType<typeof createDb>;
+export type Db = ReturnType<typeof createDb>;
+
+/**
+ * 事务句柄。`db.transaction(async (tx) => …)` 里那个 `tx` 的类型。
+ *
+ * 用 `Parameters<…>` 推导而不是从 drizzle 里 import `PgTransaction`：那个类型带
+ * 一长串泛型参数，写死就等于把驱动换掉时要改的地方从一处变成若干处。这里只关心
+ * 「和 db 说同一套查询语言、但没有 `transaction` 方法」这一件事。
+ */
+export type DbTransaction = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 function createDb() {
   const client = postgres(url, {

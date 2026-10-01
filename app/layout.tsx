@@ -69,7 +69,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             here rather than in <head> to stay clear of Next's metadata API. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <TooltipProvider>{children}</TooltipProvider>
-        <Toaster position="top-center" />
+        {/* `mobileOffset` 而不是 `offset`：顶栏只在 `md` 以下存在
+            （components/layout/app-shell.tsx:196），而它的 z-index 是 30 ——
+            toast 的层级比它高，`top-center` 落下来正好盖在应用名和主题开关上。
+            给窄屏留出顶栏那约 57px 再加一点间隙。桌面没有顶栏，保持默认即可。 */}
+        <Toaster position="top-center" mobileOffset={{ top: 72 }} />
       </body>
     </html>
   );

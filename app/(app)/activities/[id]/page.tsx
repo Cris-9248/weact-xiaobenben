@@ -47,13 +47,18 @@ export default async function ActivityOverviewPage(
           </CardHeader>
           <CardContent className="space-y-3">
             {activity.members.map((member) => (
+              // 「发起人」是信息，不该被挤掉；被挤的应该是可以省略的昵称。
               <div key={member.id} className="flex items-center gap-3">
-                <Avatar className="size-8">
+                <Avatar className="size-8 shrink-0">
                   <AvatarFallback>{member.nickname.slice(0, 1)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{member.nickname}</span>
+                <span className="min-w-0 truncate text-sm font-medium">
+                  {member.nickname}
+                </span>
                 {member.id === activity.hostId ? (
-                  <span className="text-xs text-muted-foreground">发起人</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    发起人
+                  </span>
                 ) : null}
               </div>
             ))}
@@ -105,9 +110,15 @@ export default async function ActivityOverviewPage(
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
+    // 标签是固定的短词（时间 / 地点 / 预计花费），值是**地址**那种可以很长、
+    // 而且可能是一整串不可断字符的东西。`shrink-0` 保住标签，`min-w-0` +
+    // `break-words` 让值换行，而不是把卡片撑破（`Card` 是 overflow-hidden，
+    // 撑破的表现是右边那截看不见，不是出现滚动条）。
     <div className="flex items-start justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-right font-medium wrap-break-word">
+        {value}
+      </span>
     </div>
   );
 }

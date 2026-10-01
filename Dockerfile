@@ -31,6 +31,25 @@ ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE \
 # `next build` shells out to the local tsc binary, so devDependencies are required.
 RUN npm run build
 
+# --- migrations -----------------------------------------------------------
+# A one-shot image: applies every pending migration from ./drizzle, then exits.
+# `docker compose` runs it as its own service, gated on the database being
+# healthy, and the app service waits for it to finish.
+#
+# Built from `deps`, not `runner`. The runner stage holds only the traced
+# standalone bundle — `next build` traces what the *server* imports, and nothing
+# the server imports at runtime reads ./drizzle. So the migrations and the tool
+# that applies them are simply not in that image, by construction.
+#
+# That this works at all rests on `npm ci` in the deps stage installing
+# devDependencies: drizzle-kit lives there. Adding `--omit=dev` to that command
+# would break this stage, and the failure would only show up at deploy time.
+FROM deps AS migrator
+# `.dockerignore` excludes `.env*`, so no credentials are baked in here — the
+# database URL arrives from the environment at run time, via docker-compose.
+COPY . .
+CMD ["./node_modules/.bin/drizzle-kit", "migrate"]
+
 # --- runtime --------------------------------------------------------------
 FROM base AS runner
 ENV NODE_ENV=production \

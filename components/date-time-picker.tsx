@@ -110,7 +110,7 @@ export function DateTimePicker({
             data-empty={!selected}
             className={cn(
               // Mirrors `Input`'s box so the two line up in the same form row.
-              "h-8 w-full justify-start gap-2 px-2.5 text-left font-normal data-[empty=true]:text-muted-foreground",
+              "h-11 w-full justify-start gap-2 px-2.5 text-left font-normal data-[empty=true]:text-muted-foreground",
               className
             )}
           />

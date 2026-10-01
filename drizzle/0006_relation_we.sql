@@ -1,0 +1,19 @@
+-- 这个文件是**手工写的**，drizzle-kit 生成不出来：这次没有 schema 变更，只有一句
+-- 数据订正，而 `generate` 是拿 schema 快照做 diff 的，纯数据变更在它眼里是「无变化」，
+-- 连文件都不会创建。
+--
+-- 所以 `drizzle/meta/` 里**故意没有 0006_snapshot.json**，这不是漏了。snapshot 只记
+-- schema；不生成它，下一次 `generate` 就是拿 0005 的 snapshot 去 diff，而那正好是对的 ——
+-- 0006 一个列都没动。
+--
+-- 为什么需要它：`RelationKind` 里的 `bestie`（文案「好友」）在 2026-10-01 改名成 `we`
+-- （文案「We」，表示非常亲密的关系）。`friendships.relation` 那一列是 `text` 而不是
+-- 数据库 enum（见 lib/db/schema.ts 的取舍说明），所以库不会拦下旧值 —— 它只会一直
+-- 躺在那儿，被读取端的 `isRelationKind` 判成不认识，然后兜底显示成「其他」
+-- （lib/friends/dal.ts 的 `toFriendship`）。迁移必须真的跑，否则那一行会静默降级。
+--
+-- **只迁移真正改了名的那一档。** 同一批改动里 `friend` 的显示文案也从「朋友」改成了
+-- 「好友」，但它的**存储值没变**，所以那些行不需要动 —— 别顺手把它们也 UPDATE 一遍。
+--
+-- 本地开发库上影响 1 行（bestie → we）；全新库上影响 0 行。
+UPDATE "friendships" SET "relation" = 'we' WHERE "relation" = 'bestie';

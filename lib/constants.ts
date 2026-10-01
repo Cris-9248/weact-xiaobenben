@@ -101,17 +101,47 @@ export const ACTIVITY_STATUS_LABEL: Record<ActivityStatus, string> = {
 
 /* ---------------------------------- 关系 ---------------------------------- */
 
+/**
+ * 键的顺序**就是**下拉里的顺序（见下面 `RELATIONS`），所以这张表不只是文案。
+ *
+ * 2026-10-01 用户定稿的顺序与文案：好友，We，同事，同学，恋人，夫妻，家人，其他。
+ * 两处容易看错的地方：
+ *
+ *   - `friend` 的文案从「朋友」改成了「好友」。**存储值没变**，所以老数据不用迁 ——
+ *     变的只是它显示成什么。
+ *   - `bestie`（文案「好友」）改名成 `we`（文案「We」），表示非常亲密的关系。
+ *     这个是**真的改名**，老行需要迁移（`drizzle/0006_relation_we.sql`）。
+ *   - `spouse`（夫妻）是这次新增的一档，没有老数据。
+ */
 export const RELATION_LABEL: Record<RelationKind, string> = {
-  friend: "朋友",
-  bestie: "好友",
-  lover: "恋人",
-  family: "家人",
+  friend: "好友",
+  we: "We",
   colleague: "同事",
   classmate: "同学",
+  lover: "恋人",
+  spouse: "夫妻",
+  family: "家人",
   other: "其他",
 };
 
 export const RELATIONS = Object.keys(RELATION_LABEL) as RelationKind[];
+
+/**
+ * 关系取值的白名单校验。
+ *
+ * 两处需要它，理由不同：`friendships.relation` 那一列是 `text` 而不是数据库
+ * enum（见 lib/db/schema.ts 的取舍说明），所以写入前要有东西挡住非法值；而读回
+ * 来的行同样要防 —— 手工插入或将来的一次数据导入都可能留下一个 `RELATIONS`
+ * 里没有的字符串，那时候界面需要的是回退而不是崩溃。
+ *
+ * `RELATIONS` 由 `Object.keys` 转出，所以校验范围和展示顺序永远同源：加一个
+ * 关系只需要改上面那张表。
+ */
+export function isRelationKind(value: unknown): value is RelationKind {
+  return (
+    typeof value === "string" && (RELATIONS as readonly string[]).includes(value)
+  );
+}
 
 /* ---------------------------------- 导航 ---------------------------------- */
 
@@ -122,9 +152,16 @@ export interface NavItem {
   icon: "calendar" | "users" | "sparkles" | "user";
 }
 
+/**
+ * 好友页的地址。单独抽出来，因为它在两个地方要**比较**而不是渲染：导航组件
+ * 靠它判断哪个菜单项该挂徽标，`app/(app)/layout.tsx` 靠它决定数哪边的未读。
+ * 比对字符串最怕的是第二个字面量写错一个字母 —— 那样徽标会安静地不出现。
+ */
+export const FRIENDS_HREF = "/friends";
+
 export const NAV_ITEMS: NavItem[] = [
   { href: "/activities", label: "活动", icon: "calendar" },
-  { href: "/friends", label: "好友", icon: "users" },
+  { href: FRIENDS_HREF, label: "好友", icon: "users" },
   { href: "/recap", label: "回顾", icon: "sparkles" },
   { href: "/settings", label: "我的", icon: "user" },
 ];

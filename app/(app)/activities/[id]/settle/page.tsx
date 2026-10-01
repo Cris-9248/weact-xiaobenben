@@ -41,13 +41,20 @@ export default async function ActivitySettlePage(
           {finished ? (
             raters.length > 0 ? (
               <ul className="space-y-4">
+                {/* 右边那 5 颗星是固定的 88px（5×16 + 4×2），头像 size-8 也固定；
+                    两头的固定宽度加起来，在 320px 的卡片里会把昵称挤出去 —— 而
+                    `Card` 是 overflow-hidden，溢出就成了**看不见的截断**。
+                    `min-w-0` 让昵称可被压缩，`truncate` 让压缩表现为省略号，
+                    两个固定项加 `shrink-0` 保证先挤的是昵称而不是星星。 */}
                 {raters.map((user) => (
                   <li key={user.id} className="flex items-center gap-4">
-                    <Avatar className="size-8">
+                    <Avatar className="size-8 shrink-0">
                       <AvatarFallback>{user.nickname.slice(0, 1)}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{user.nickname}</span>
-                    <span className="flex gap-0.5">
+                    <span className="min-w-0 truncate text-sm font-medium">
+                      {user.nickname}
+                    </span>
+                    <span className="flex shrink-0 gap-0.5">
                       {Array.from({ length: 5 }, (_, i) => (
                         <Star
                           key={i}
@@ -79,12 +86,21 @@ export default async function ActivitySettlePage(
               <p className="text-sm text-muted-foreground">
                 总计 {formatCurrency(bill.total)}，共 {bill.shares.length} 人
               </p>
+              {/* 四列在 320px 下最小内容宽约 580px，而卡片里只有约 240px。表格外面
+                  那层是 `overflow-x-auto`（table.tsx:10），所以整页不会被撑出横向
+                  滚动 —— 代价是最右边那列**整列看不见**，且没有任何提示。
+                  手机宽度下只留真正的行动项：谁 + 差多少。应付/已付是推导差额的中间
+                  量，`sm:` 以上再出现。 */}
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>成员</TableHead>
-                    <TableHead className="text-right">应付</TableHead>
-                    <TableHead className="text-right">已付</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">
+                      应付
+                    </TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">
+                      已付
+                    </TableHead>
                     <TableHead className="text-right">差额</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -93,13 +109,15 @@ export default async function ActivitySettlePage(
                     const delta = share.paid - share.amount;
                     return (
                       <TableRow key={share.user.id}>
-                        <TableCell className="font-medium">
+                        {/* 昵称最长 20 字（约 280px），而 `TableCell` 默认
+                            `whitespace-nowrap` —— 不放开换行，光这一列就把表撑破。 */}
+                        <TableCell className="font-medium wrap-break-word sm:whitespace-nowrap">
                           {share.user.nickname}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
+                        <TableCell className="hidden text-right tabular-nums sm:table-cell">
                           {formatCurrency(share.amount)}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
+                        <TableCell className="hidden text-right tabular-nums sm:table-cell">
                           {formatCurrency(share.paid)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">

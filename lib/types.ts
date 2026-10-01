@@ -13,30 +13,73 @@ export interface User {
   passwordSetAt?: string;
 }
 
+/**
+ * The signed-in account, as handed to the UI.
+ *
+ * Deliberately NOT `UserRow` from `lib/db/schema.ts` — that type carries
+ * `passwordHash`. Even if no component renders it, passing a row that contains it
+ * into the component tree is an unnecessary exposure: one `console.log`, one
+ * `"use client"` boundary added later, and it leaks. A type without the field
+ * cannot leak it. Same rule as `AdminUserRow` in lib/admin/dal.ts.
+ *
+ * `nickname` is non-null here, unlike in the database. Reaching this type means
+ * passing `requireSessionUser`, whose gate sends nameless accounts to
+ * /register/password — so the nullable column is not a case the UI has to handle.
+ *
+ * Lives in this file rather than beside the session code because a Client
+ * Component (the app shell) needs it, and everything in `lib/auth/` is behind
+ * `import "server-only"`.
+ */
+export interface SessionUser {
+  id: UserId;
+  phone: string;
+  nickname: string;
+  avatarUrl: string | null;
+}
+
 /* ---------------------------------- 好友 ---------------------------------- */
 
 /**
  * How *I* label a friend. Directed and visible only to the owner — the other
  * side may label the same friendship differently, so this never lives on the
  * friendship edge itself.
+ *
+ * 顺序即界面上的顺序（`RELATIONS` 由 `RELATION_LABEL` 的键序转出），所以这里
+ * 改顺序等于改下拉，别当它是随便排的。
+ *
+ * `we` 原来的名字是 `bestie`，显示文案一直是「好友」；2026-10-01 用户把它定为
+ * 「非常亲密的关系」，改名成 `we` 并给了一个数据迁移（`drizzle/0006_relation_we.sql`）。
+ * 与此同时「朋友」那一档的**显示文案**改成了「好友」—— 存储值仍然是 `friend`，
+ * 没有迁移，两件事别混。
  */
 export type RelationKind =
   | "friend"
-  | "bestie"
-  | "lover"
-  | "family"
+  | "we"
   | "colleague"
   | "classmate"
+  | "lover"
+  | "spouse"
+  | "family"
   | "other";
 
-export interface Friendship {
-  id: string;
-  ownerId: UserId;
-  friend: User;
-  relation: RelationKind;
-  /** Free-text label shown instead of the preset when relation is `other`. */
-  relationNote?: string;
-  createdAt: string;
+/**
+ * A friend, as handed to the UI: the other side's public profile and nothing else.
+ *
+ * Mirrors `SessionUser` above, with one deliberate difference — `nickname` is
+ * nullable here. Reaching `SessionUser` means passing `requireSessionUser`, whose
+ * gate turns nameless accounts away; a friend is whoever happens to be on the
+ * other end of a `friendships` row, and phone-number signup creates the row
+ * before it collects a name. The UI reads a null as 「未完成注册」.
+ *
+ * Lives in this file rather than in `lib/friends/dal.ts` for the same reason
+ * `SessionUser` does: the activity form is a Client Component and needs to name
+ * this shape, while everything in `lib/friends/` is behind `import "server-only"`.
+ */
+export interface FriendSummary {
+  id: UserId;
+  phone: string;
+  nickname: string | null;
+  avatarUrl: string | null;
 }
 
 /* ---------------------------------- 活动 ---------------------------------- */

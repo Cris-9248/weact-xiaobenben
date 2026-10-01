@@ -1,12 +1,22 @@
 /**
- * Placeholder data so the UI has something to render before a Data Access
- * Layer exists. Everything here is replaced once the DB is wired — nothing
- * outside this file should assume a data source.
+ * 活动域的假数据。
+ *
+ * 用户和会话已经是真的了 —— `users` / `sessions` 表，读它们走 lib/auth/session.ts。
+ * 这个文件里剩下的全是活动域的：活动、感想、初步计划、投票、分账、行程报价、
+ * 回顾都还没有表，所以在那些表建起来之前，它们的 fixture 只能留在这里。
+ *
+ * **`me` 和 `users` 故意不再 `export`。** 它们是上面那些 fixture 的演员表：
+ * `activities[0].hostId` 指向 `me.id`，`moments[0].author` 是 `users[0]`，
+ * 假数据内部要互相引用，所以它们必须存在。但真实界面上的「我」来自会话，
+ * 永远不是这里。去掉 `export` 让「真实界面误读 mock 用户」在**编译期**就不可能，
+ * 而不是靠一句注释提醒 —— 谁再写 `import { me }`，tsc 立刻报错。
+ *
+ * 好友关系也搬走了：`friendships` / `myFriendships` 已删除，真身在
+ * `friendships` 表和 lib/friends/dal.ts，按 `ownerId` 过滤是 DAL 的职责。
  */
 
 import type {
   Activity,
-  Friendship,
   IntimacyScore,
   Moment,
   ProposalWithVotes,
@@ -17,42 +27,20 @@ import type {
   YearlyRecap,
 } from "@/lib/types";
 
-export const me: User = {
+const me: User = {
   id: "u_me",
   phone: "13800138000",
   nickname: "小笨笨",
   passwordSetAt: "2026-01-04T10:00:00+08:00",
 };
 
-export const users: User[] = [
+const users: User[] = [
   { id: "u_2", phone: "13900139000", nickname: "阿哲" },
   { id: "u_3", phone: "13700137000", nickname: "小林" },
   { id: "u_4", phone: "13600136000", nickname: "婷婷" },
   { id: "u_5", phone: "13500135000", nickname: "老王" },
   { id: "u_6", phone: "13400134000", nickname: "大鹏" },
 ];
-
-/** The global friendship table. Because it is global it carries `ownerId` — a
- *  row here is NOT necessarily *my* friendship. Read `myFriendships` instead. */
-export const friendships: Friendship[] = [
-  { id: "f_1", ownerId: me.id, friend: users[0], relation: "bestie", createdAt: "2026-01-08T09:00:00+08:00" },
-  { id: "f_2", ownerId: me.id, friend: users[1], relation: "lover", createdAt: "2026-02-14T20:00:00+08:00" },
-  { id: "f_3", ownerId: me.id, friend: users[2], relation: "friend", createdAt: "2026-03-02T12:00:00+08:00" },
-  { id: "f_4", ownerId: me.id, friend: users[3], relation: "family", createdAt: "2026-03-19T18:30:00+08:00" },
-  // 大鹏是阿哲的好友，不是我的。这条数据的存在是为了让「只能拉好友」这条约束
-  // 真的能被验证 —— 它既不在我的好友列表里，也不该出现在任何选择器里。
-  { id: "f_5", ownerId: users[0].id, friend: users[4], relation: "friend", createdAt: "2026-04-02T11:00:00+08:00" },
-];
-
-/**
- * Stands in for the DAL call that will eventually be
- * `getFriendships(session.userId)`. Anything that offers a choice of people must
- * read from here, never from `friendships` — that list is global and would let a
- * user pull in a stranger.
- */
-export const myFriendships: Friendship[] = friendships.filter(
-  (friendship) => friendship.ownerId === me.id
-);
 
 export const activities: Activity[] = [
   {

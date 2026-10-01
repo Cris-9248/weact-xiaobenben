@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,43 +18,26 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NICKNAME_RULES, checkNickname } from "@/lib/validation";
+import { completeRegistration } from "@/lib/auth/actions";
+import { AUTH_FORM_INITIAL } from "@/lib/auth/form-state";
 
 /**
  * 注册第二步：补昵称。账号和密码在上一步的登录页就已经处理掉了。
  *
  * 路径仍叫 `register/password`，但这一页已经不收密码了 —— 名字是历史遗留，
- * 保留只是为了这次不动文件结构。真要改名，改的是目录名，引用点只有
- * 登录页里的那一次 `router.push`。
+ * 保留只是为了这次不动文件结构（要改就是改目录名，引用点一处都没有了：
+ * 现在没人 `router.push` 到这里，人是被 signIn 重定向送过来的）。
+ *
+ * 这一页不判断「我是谁」。身份在会话里，`completeRegistration` 自己去读；
+ * 页面上没有任何地方能指定要改哪个账号。上一版这里在客户端先跑了一遍
+ * `checkNickname`，现在删掉了，理由和登录页一样：校验只有一份，在服务端。
  */
 export default function CompleteRegistrationPage() {
-  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(
+    completeRegistration,
+    AUTH_FORM_INITIAL,
+  );
   const [nickname, setNickname] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (submitting) return;
-
-    // 规则来自 lib/validation.ts，和登录页共用同一套 —— 服务端落地后
-    // 也要跑同一个 checkNickname，否则放宽规则时两边会不一致。
-    const problems = checkNickname(nickname);
-    if (problems.length > 0) {
-      setError(problems.map((p) => NICKNAME_RULES[p]).join("、"));
-      return;
-    }
-
-    setError(null);
-    setSubmitting(true);
-
-    // TODO: Server Action → 靠「待完成注册」cookie 找回刚建的那个账号，
-    // 写入昵称（trim 后再存，别把首尾空格带进库），清掉 cookie，然后签发会话。
-    // 昵称的唯一性这里不校验：同名是允许的，登录身份是手机号。
-    toast("后端尚未接入", { description: "接入前昵称不会真的保存。" });
-    setSubmitting(false);
-    router.push("/activities");
-  }
 
   return (
     <Card>
@@ -66,27 +47,25 @@ export default function CompleteRegistrationPage() {
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit}>
+        <form action={formAction}>
           <FieldGroup>
-            <Field data-invalid={error ? true : undefined}>
+            <Field data-invalid={state.nicknameError ? true : undefined}>
               <FieldLabel htmlFor="nickname">昵称</FieldLabel>
               <Input
                 id="nickname"
                 name="nickname"
                 autoComplete="nickname"
                 value={nickname}
-                aria-invalid={error ? true : undefined}
-                onChange={(e) => {
-                  setNickname(e.target.value);
-                  if (error) setError(null);
-                }}
+                placeholder="请输入昵称"
+                aria-invalid={state.nicknameError ? true : undefined}
+                onChange={(e) => setNickname(e.target.value)}
               />
-              <FieldError>{error}</FieldError>
+              <FieldError>{state.nicknameError}</FieldError>
               <FieldDescription>之后可以在「我的」里改。</FieldDescription>
             </Field>
 
-            <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? "创建中…" : "完成"}
+            <Button type="submit" disabled={isPending} className="w-full">
+              {isPending ? "创建中…" : "完成"}
             </Button>
           </FieldGroup>
         </form>

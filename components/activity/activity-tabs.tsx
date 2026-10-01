@@ -38,7 +38,14 @@ export function ActivityTabs({
   ];
 
   return (
-    <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-px md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    // **换行，不横滑。** 五个标签在 320px 下共约 444px，而可见区只有 288px；
+    // 原来那套 `overflow-x-auto` + `[&::-webkit-scrollbar]:hidden` 不只是把内容截断，
+    // 是**连「右边还有东西」这个提示一起删掉了** —— 两个目的地就此隐形。换行之后
+    // 五个标签全部可见，代价只是窄屏上多占一行。
+    //
+    // `min-h-11` 是那条全局 44px 触控地板：`py-1.5` 加 `text-sm` 只有 32px。
+    // `inline-flex items-center` 是配它来的（`min-height` 对纯 inline 元素无效）。
+    <nav className="-mx-4 flex flex-wrap gap-1 px-4 pb-px md:mx-0 md:flex-nowrap md:px-0">
       {tabs.map((tab) => {
         const active = pathname === tab.href;
         return (
@@ -47,7 +54,7 @@ export function ActivityTabs({
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm font-medium transition-colors",
               active
                 ? "bg-secondary text-secondary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"

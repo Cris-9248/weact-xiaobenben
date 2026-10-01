@@ -14,12 +14,41 @@ services:
     environment:
       # Read at runtime by the server only — never inlined into the client bundle.
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/weact}
+      # Admin credential for /admin. Interpolated from `.env` or the calling
+      # shell — NOT from `.env.local`, which only Next.js reads. The `:-` form
+      # means an unset variable passes through as empty rather than warning;
+      # empty closes the admin area, which is the safe direction.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    depends_on:
+      # The app must not start before the schema exists: its very first query
+      # would hit tables that have not been created. Depending on `migrate`
+      # covers `db` being healthy too — migrate waits for that itself.
+      #
+      # Consequence worth knowing: a failed migration stops the app from
+      # starting at all, rather than letting it come up against a half-built
+      # schema. That is the intended direction.
+      migrate:
+        condition: service_completed_successfully
+
+  # Applies everything in ./drizzle, then exits. Runs on every `up`, and is a
+  # no-op after the first: drizzle-kit records what it has applied in
+  # drizzle.__drizzle_migrations.
+  migrate:
+    build:
+      context: .
+      target: migrator
+    image: weact-xiaobenben-migrate
+    # A one-shot job, not a server — restarting it on exit would loop.
+    restart: "no"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/weact}
     depends_on:
       db:
         condition: service_healthy
 
-  # Reserved for the PostgreSQL integration. The app does not connect to it yet;
-  # DATABASE_URL is already wired so nothing else needs to change once it does.
+  # The app and `migrate` both read this. It holds the users/sessions tables and
+  # `drizzle.__drizzle_migrations`.
   db:
     image: postgres:18-alpine
     restart: unless-stopped

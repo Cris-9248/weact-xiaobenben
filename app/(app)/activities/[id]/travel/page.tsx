@@ -72,11 +72,14 @@ function QuoteCard({ quote }: { quote: TravelQuote }) {
   return (
     <Card>
       <CardContent className="space-y-3 py-4">
+        {/* 价格已经 `shrink-0` 了，缺的是左边：航班/车次那种标题可以很长。 */}
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">{quote.title}</p>
+          <div className="min-w-0 space-y-0.5">
+            <p className="truncate text-sm font-medium">{quote.title}</p>
             {quote.provider ? (
-              <p className="text-xs text-muted-foreground">{quote.provider}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {quote.provider}
+              </p>
             ) : null}
           </div>
           {quote.price ? (

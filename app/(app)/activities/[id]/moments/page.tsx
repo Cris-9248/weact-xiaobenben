@@ -44,12 +44,16 @@ function MomentItem({ moment }: { moment: Moment }) {
   return (
     <Card>
       <CardContent className="space-y-3 py-4">
+        {/* 同 settle 页那一条：头像固定 size-8，昵称最长 20 字，缺 `min-w-0`
+            就会被 `Card` 的 overflow-hidden 悄悄裁掉。 */}
         <div className="flex items-center gap-3">
-          <Avatar className="size-8">
+          <Avatar className="size-8 shrink-0">
             <AvatarFallback>{moment.author.nickname.slice(0, 1)}</AvatarFallback>
           </Avatar>
-          <div>
-            <p className="text-sm font-medium">{moment.author.nickname}</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">
+              {moment.author.nickname}
+            </p>
             <p className="text-xs text-muted-foreground">
               {formatDateTime(moment.createdAt)}
             </p>

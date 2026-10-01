@@ -43,7 +43,11 @@ function PopoverContent({
             // omits them, so a popover taller than the room floating-ui measured
             // overflows the viewport with no way to scroll. `--available-height`
             // is set on the positioner by Base UI and inherits down to here.
-            "z-50 flex max-h-(--available-height) w-72 origin-(--transform-origin) flex-col gap-2.5 overflow-y-auto rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            // `max-w-[calc(100vw-1rem)]`：`w-72` 是 288px，在 320px 的视口里只剩
+            // 16px 的避让空间，floating-ui 的 shift 几乎无处可挪 —— 弹层会贴着
+            // 屏幕边，或者干脆被推到视口外一截。改成视口相对的上限之后，窄屏上它
+            // 自己变窄，宽屏仍然是 288px。
+            "z-50 flex max-h-(--available-height) w-72 max-w-[calc(100vw-1rem)] origin-(--transform-origin) flex-col gap-2.5 overflow-y-auto rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}

@@ -20,9 +20,8 @@ import { ActivityTypePicker } from "@/components/activity/activity-type-picker";
 import { DateTimePicker } from "@/components/date-time-picker";
 import { cn } from "cn";
 import { formatCurrency } from "@/lib/format";
-import { myFriendships } from "@/lib/mock-data";
 import { isValidPhone, normalizePhone } from "@/lib/validation";
-import type { ActivityType } from "@/lib/types";
+import type { ActivityType, FriendSummary } from "@/lib/types";
 
 interface Draft {
   type: ActivityType;
@@ -60,8 +59,13 @@ const EMPTY: Draft = {
 /**
  * 新建活动：主题 / 时间 / 地点定位 / 预计花费 / 预计人均 / 具体说明。
  * Field state is local for now; the Server Action call is stubbed.
+ *
+ * **好友列表由父级传进来。** 这是个 Client Component，读不了会话也读不了库 ——
+ * 而这里要的是「我自己的好友」，不是一张全站名单。父级
+ * (app/activities/new/page.tsx) 读会话、按 ownerId 查完再传下来，这个组件只负责
+ * 画出来。所以它收的是已经过滤好的数据，自己没有任何取数能力。
  */
-export function ActivityForm() {
+export function ActivityForm({ friends }: { friends: FriendSummary[] }) {
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -82,7 +86,7 @@ export function ActivityForm() {
       setInviteError("请输入有效的 11 位手机号");
       return;
     }
-    if (myFriendships.some((f) => f.friend.phone === phone)) {
+    if (friends.some((f) => f.phone === phone)) {
       setInviteError("这个人已经是好友了，直接在上面选就行");
       return;
     }
@@ -167,10 +171,14 @@ export function ActivityForm() {
             <Field>
               <FieldLabel>拉谁进小团体</FieldLabel>
 
-              {myFriendships.length > 0 && (
+              {friends.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {myFriendships.map(({ friend }) => {
+                  {friends.map((friend) => {
                     const picked = draft.memberIds.includes(friend.id);
+                    // 昵称可空：手机号注册是先建行、后取名。措辞与好友页、
+                    // 管理页统一。真让这样的账号进活动是不合适的，但那是提交
+                    // 那一步的事 —— 这里先把人显示出来，而不是渲染成一片空白。
+                    const name = friend.nickname ?? "未完成注册";
                     return (
                       <button
                         key={friend.id}
@@ -184,8 +192,9 @@ export function ActivityForm() {
                               : [...draft.memberIds, friend.id]
                           )
                         }
+                        // `min-h-11`：整颗 chip 就是可点区域，`py-1` 加头像只有 32px。
                         className={cn(
-                          "flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition-colors",
+                          "flex min-h-11 items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition-colors",
                           picked
                             ? "border-primary bg-secondary"
                             : "hover:bg-muted"
@@ -193,14 +202,21 @@ export function ActivityForm() {
                       >
                         <Avatar className="size-6">
                           <AvatarFallback className="text-[0.6rem]">
-                            {friend.nickname.slice(0, 1)}
+                            {name.slice(0, 1)}
                           </AvatarFallback>
                         </Avatar>
-                        {friend.nickname}
+                        {name}
                       </button>
                     );
                   })}
                 </div>
+              ) : (
+                // 一个好友都没有时不能什么都不显示：那样新用户看到的只是一个
+                // 缺了一块的表单，没有任何东西解释那一块本来该有什么。
+                <FieldDescription>
+                  你还没有好友，所以这里没有可选的人。先去「好友」页加几个，
+                  或者直接在下面输手机号。
+                </FieldDescription>
               )}
 
               {/* Invited non-friends. Dashed so they read as provisional — they
@@ -223,7 +239,11 @@ export function ActivityForm() {
                             draft.invites.filter((p) => p !== phone)
                           )
                         }
-                        className="grid size-4 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        // 视觉尺寸从 16px 提到 24px —— 那个 16px 的点是全应用最小的
+                        // 可点目标 —— 再用 `after:-inset-y-2.5` 把**高度**撑到 44px。
+                        // 横向**不扩**：相邻 chip 之间只有 8px，横向扩出去命中区会
+                        // 互相重叠，点在左边那颗的右半边会删掉右边那颗。
+                        className="relative grid size-6 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors after:absolute after:-inset-y-2.5 hover:bg-muted hover:text-foreground"
                       >
                         <X className="size-3" />
                       </button>
@@ -237,6 +257,12 @@ export function ActivityForm() {
                   id="invite-phone"
                   type="tel"
                   inputMode="numeric"
+                  // 这个框里的 Enter 被下面 onKeyDown 拦下来加 chip 了，不让它提交
+                  // 表单 —— 但软键盘上那个键的文案还按「会提交」来显示，也就是
+                  // 「前往」。`enterKeyHint` 的合法值里没有「添加」，就选 `enter`：
+                  // 它是唯一一个不承诺任何别的事情的选项（`go`/`send` 都说会提交，
+                  // `done` 说会结束，`next` 说会跳下一栏，三个都不对）。
+                  enterKeyHint="enter"
                   placeholder="输入手机号拉非好友"
                   value={invitePhone}
                   aria-invalid={inviteError ? true : undefined}
@@ -275,11 +301,16 @@ export function ActivityForm() {
             <div className="grid gap-5 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="budgetTotal">预计花费</FieldLabel>
+                {/* `type="text"` 而不是 `type="number"`：number 会带出原生的上下
+                    箭头（手机上看着像个坏掉的控件），而且部分安卓输入法会无视
+                    `inputMode="decimal"`、弹出带 `-` 和 `e` 的全键盘。
+                    代价是字母也能打进来了 —— 由下面那句 `total > 0` 兜住：
+                    `Number("abc")` 是 NaN，而 `NaN > 0` 为假，估算只是不出现，
+                    不会渲染出 `¥NaN`。真正算账的地方在服务端，它本来就要自己解析。 */}
                 <Input
                   id="budgetTotal"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min={0}
                   value={draft.budgetTotal}
                   placeholder="0"
                   onChange={(e) => set("budgetTotal", e.target.value)}
@@ -287,11 +318,11 @@ export function ActivityForm() {
               </Field>
               <Field>
                 <FieldLabel htmlFor="budgetPerPerson">预计人均</FieldLabel>
+                {/* 同上：`type="text"` + `inputMode="decimal"`。 */}
                 <Input
                   id="budgetPerPerson"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min={0}
                   value={draft.budgetPerPerson}
                   placeholder={suggested ? String(suggested) : "0"}
                   onChange={(e) => set("budgetPerPerson", e.target.value)}

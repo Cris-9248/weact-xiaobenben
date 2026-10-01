@@ -43,8 +43,10 @@ export default function RecapPage() {
               key={item.label}
               className="flex items-center justify-between gap-4 border-b pb-3 last:border-0 last:pb-0"
             >
-              <span className="text-sm text-muted-foreground">{item.label}</span>
-              <span className="text-right">
+              <span className="shrink-0 text-sm text-muted-foreground">
+                {item.label}
+              </span>
+              <span className="min-w-0 text-right">
                 <span className="font-heading font-semibold">{item.value}</span>
                 {item.hint ? (
                   <span className="ml-2 text-xs text-muted-foreground">

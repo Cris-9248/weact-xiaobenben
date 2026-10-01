@@ -109,13 +109,18 @@ export default async function SharedActivityPage(props: Props) {
           </CardHeader>
           <CardContent className="space-y-3">
             {activity.members.map((member) => (
+              // 这是**公开分享页** —— 一个没登录的人第一次看到这个应用，可能就是在
+              // 320px 的手机上。同样的头像 + 20 字昵称 + 「发起人」组合，缺
+              // `min-w-0` 的话溢出会被 `Card` 的 overflow-hidden 吃掉。
               <div key={member.id} className="flex items-center gap-3">
-                <Avatar className="size-8">
+                <Avatar className="size-8 shrink-0">
                   <AvatarFallback>{member.nickname.slice(0, 1)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm">{member.nickname}</span>
+                <span className="min-w-0 truncate text-sm">{member.nickname}</span>
                 {member.id === activity.hostId ? (
-                  <span className="text-xs text-muted-foreground">发起人</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    发起人
+                  </span>
                 ) : null}
               </div>
             ))}
